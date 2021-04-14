@@ -28,6 +28,14 @@ class PHPClass2WSDL
     protected $uri;
 
     /**
+     * The target namespace
+     * defaults to $uri if target namespace is not set
+     *
+     * @var string
+     */
+    protected $targetNamespace;
+
+    /**
      * The URI to the stylesheet file.
      *
      * @var string
@@ -66,9 +74,10 @@ class PHPClass2WSDL
      *
      * @param mixed $class The class name from which to generate the WSDL.
      * @param string $uri The web service URL.
+     * @param string $targetNamespace Overwrite namespace. Uri will be used if targetNamespace is left empty.
      * @throws InvalidArgumentException If the class is not valid or not an object.
      */
-    public function __construct($class, $uri)
+    public function __construct($class, $uri, $targetNamespace='')
     {
         if (is_string($class) && class_exists($class)) {
             $this->class = $class;
@@ -79,6 +88,7 @@ class PHPClass2WSDL
         }
 
         $this->uri = $uri;
+        $this->targetNamespace = $targetNamespace ?: $uri;
     }
 
     /**
@@ -132,8 +142,7 @@ class PHPClass2WSDL
     {
         $qNameClassName = WSDL::typeToQName($this->class);
 
-        $this->wsdl = new WSDL($qNameClassName, $this->uri, $this->xslUri);
-
+        $this->wsdl = new WSDL($qNameClassName, $this->uri, $this->xslUri, $this->targetNamespace);
         $port = $this->wsdl->addPortType($qNameClassName . 'Port');
         $binding = $this->wsdl->addBinding($qNameClassName . 'Binding', 'tns:' . $qNameClassName . 'Port');
 
@@ -256,7 +265,7 @@ class PHPClass2WSDL
 
         // When using the RPC style, make sure the operation style includes a 'namespace' attribute (WS-I Basic Profile 1.1 R2717).
         if ($this->bindingStyle['style'] === 'rpc' && isset($this->operationBodyStyle['namespace']) === false) {
-            $this->operationBodyStyle['namespace'] = '' . htmlspecialchars($this->uri);
+            $this->operationBodyStyle['namespace'] = '' . htmlspecialchars($this->targetNamespace);
         }
 
         // Add the binding operation.
@@ -266,7 +275,7 @@ class PHPClass2WSDL
             $this->operationBodyStyle,
             $this->operationBodyStyle
         );
-        $this->wsdl->addSoapOperation($operation, $this->uri . '#' . $qNameMethodName);
+        $this->wsdl->addSoapOperation($operation, $this->targetNamespace . '#' . $qNameMethodName);
     }
 
     /**

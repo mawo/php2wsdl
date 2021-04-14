@@ -72,19 +72,23 @@ class WSDL
      * @param string $name The name of the web service.
      * @param string $uri URI where the WSDL will be available.
      * @param string $xslUri The URI to the stylesheet.
+     * @param string $targetNamespace The namespace used in the WSDL
      * @throws RuntimeException If the DOM Document can not be created.
      */
-    public function __construct($name, $uri, $xslUri = null)
+    public function __construct($name, $uri, $xslUri = null, $targetNamespace = null)
     {
         $this->dom = new DOMDocument('1.0');
         if ($xslUri !== null) {
             $this->setStylesheet($xslUri);
         }
+        if ($targetNamespace === null) {
+            $targetNamespace = $uri;
+        }
 
         $definitions = $this->dom->createElementNS('http://schemas.xmlsoap.org/wsdl/', 'definitions');
         $definitions->setAttribute('name', $name);
-        $definitions->setAttribute('targetNamespace', $uri);
-        $definitions->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:tns', htmlspecialchars($uri));
+        $definitions->setAttribute('targetNamespace', $targetNamespace);
+        $definitions->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:tns', htmlspecialchars($targetNamespace));
         $definitions->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:soap', 'http://schemas.xmlsoap.org/wsdl/soap/');
         $definitions->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:xsd', 'http://www.w3.org/2001/XMLSchema');
         $definitions->setAttributeNS('http://www.w3.org/2000/xmlns/', 'xmlns:soap-enc', 'http://schemas.xmlsoap.org/soap/encoding/');
@@ -94,7 +98,7 @@ class WSDL
         $this->wsdl = $this->dom->documentElement;
 
         $this->schema = $this->dom->createElement('xsd:schema');
-        $this->schema->setAttribute('targetNamespace', $uri);
+        $this->schema->setAttribute('targetNamespace', $targetNamespace);
 
         // Add the import for validation.
         $import = $this->dom->createElement('xsd:import');
@@ -425,7 +429,6 @@ class WSDL
         $soapType = 'tns:' . $soapTypeName;
 
         $this->addType($type, $soapType);
-
         $all = $this->dom->createElement('xsd:all');
         foreach ($class->getProperties() as $property) {
             $annotationsCollection = $property->getReflectionDocComment()->getAnnotationsCollection();
